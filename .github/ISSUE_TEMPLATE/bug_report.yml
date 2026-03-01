@@ -1,0 +1,76 @@
+name: Bug report
+description: Report a functional, UX, or security issue
+title: "[Bug] "
+labels:
+  - bug
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What is broken?
+      placeholder: Clear and concise description.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Encoding/Crypto tools
+        - Data tools
+        - Text tools
+        - Time tools
+        - IDs tools
+        - App shell/navigation
+        - Security/CSP
+        - Build/TypeScript
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Go to ...
+        2. Paste ...
+        3. Click ...
+        4. Observe ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact
+      description: Note user impact, data loss risk, or security/privacy concern.
+    validations:
+      required: true
+
+  - type: textarea
+    id: env
+    attributes:
+      label: Environment
+      placeholder: Browser, OS, route, build/dev mode.
+
+  - type: textarea
+    id: artifacts
+    attributes:
+      label: Screenshots / logs
+      description: Include console errors and screenshots when possible.
