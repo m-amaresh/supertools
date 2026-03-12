@@ -17,6 +17,10 @@ export const GLOBAL_KEYWORDS = [
   "aes encryption",
   "rsa sign verify",
   "text diff",
+  "csv to json",
+  "url parser",
+  "base58 converter",
+  "tls certificate viewer",
 ];
 
 export const TOOLS_KEYWORDS = [

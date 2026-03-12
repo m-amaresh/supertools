@@ -141,6 +141,30 @@ export const TOOL_INTENT_KEYWORDS: Record<string, string[]> = {
     "cron builder",
     "cron next run",
   ],
+  "/tools/data/csv": [
+    "csv to json",
+    "json to csv",
+    "tsv to json",
+    "json to tsv",
+  ],
+  "/tools/encode/url-parser": [
+    "url parser",
+    "query parameter builder",
+    "url query editor",
+    "parse url",
+  ],
+  "/tools/encode/base58": [
+    "base58 encode",
+    "base58 decode",
+    "base58check",
+    "bitcoin base58",
+  ],
+  "/tools/encode/tls-cert": [
+    "tls certificate viewer",
+    "x509 parser",
+    "pem certificate inspector",
+    "certificate fingerprint",
+  ],
 };
 
 export const TOOL_FAQ_BY_PATH: Record<string, ToolSeoFaqSection> = {
@@ -468,6 +492,66 @@ export const TOOL_FAQ_BY_PATH: Record<string, ToolSeoFaqSection> = {
         question: "Can I preview upcoming run times?",
         answer:
           "Yes, it calculates and displays the next scheduled run times from now.",
+      },
+    ],
+  },
+  "/tools/data/csv": {
+    title: "CSV/TSV ↔ JSON FAQ",
+    items: [
+      {
+        question: "Does it support CSV and TSV input?",
+        answer:
+          "Yes, you can switch delimiter mode between comma-separated CSV and tab-separated TSV.",
+      },
+      {
+        question: "Can I convert JSON objects back to CSV?",
+        answer:
+          "Yes, array-of-object JSON input can be converted to delimited output with optional header rows.",
+      },
+    ],
+  },
+  "/tools/encode/url-parser": {
+    title: "URL Parser & Builder FAQ",
+    items: [
+      {
+        question: "Can I edit query parameters after parsing?",
+        answer:
+          "Yes, parsed query parameters can be added, updated, or removed and the URL is rebuilt instantly.",
+      },
+      {
+        question: "Does it preserve URL encoding rules?",
+        answer:
+          "Yes, rebuilding uses browser URL APIs so query parameters are encoded consistently.",
+      },
+    ],
+  },
+  "/tools/encode/base58": {
+    title: "Base58/Base58Check FAQ",
+    items: [
+      {
+        question: "What is the difference between Base58 and Base58Check?",
+        answer:
+          "Base58Check appends a 4-byte checksum (double SHA-256) for integrity validation.",
+      },
+      {
+        question: "Which alphabet is used?",
+        answer:
+          "The tool uses the Bitcoin Base58 alphabet, which omits ambiguous characters like 0, O, I, and l.",
+      },
+    ],
+  },
+  "/tools/encode/tls-cert": {
+    title: "TLS Certificate Viewer FAQ",
+    items: [
+      {
+        question: "What certificate details are shown?",
+        answer:
+          "The viewer extracts key metadata such as subject, issuer, validity window, SAN entries, and SHA-256 fingerprint.",
+      },
+      {
+        question: "Can I inspect multiple PEM certificates at once?",
+        answer:
+          "Yes, if multiple CERTIFICATE blocks are present, each one is parsed and displayed separately.",
       },
     ],
   },

@@ -373,58 +373,76 @@ export default function RegexTester() {
               </ToolMeta>
             </div>
             <div className="max-h-64 divide-y divide-border overflow-y-auto">
-              {result.matches.map((match: RegexMatch, i: number) => (
-                <div key={`m-${match.index}-${i}`} className="px-4 py-2.5">
-                  <div className="flex items-center gap-3">
-                    <span className="w-6 flex-shrink-0 text-right text-[11px] font-medium tabular-nums text-muted-foreground">
-                      {i + 1}
-                    </span>
-                    <code className="flex-1 break-all font-mono text-[13px] text-foreground">
-                      {match.fullMatch}
-                    </code>
-                    <span className="flex-shrink-0 text-[11px] tabular-nums text-muted-foreground">
-                      idx {match.index}
-                    </span>
-                    <CopyButton text={match.fullMatch} />
-                  </div>
+              {result.matches.map((match: RegexMatch, i: number) => {
+                const matchKey = `m-${match.index}-${match.length}-${match.fullMatch}`;
+                const groupCounts = new Map<string, number>();
+                let captureNumber = 0;
+                const captureGroups = match.groups.map((group) => {
+                  captureNumber += 1;
+                  const seen = groupCounts.get(group) ?? 0;
+                  groupCounts.set(group, seen + 1);
+                  return {
+                    key: `g-${match.index}-${captureNumber}-${seen}-${group}`,
+                    label: `$${captureNumber}`,
+                    value: group,
+                  };
+                });
 
-                  {match.groups.length > 0 && (
-                    <div className="ml-9 mt-1.5 flex flex-wrap gap-1.5">
-                      {match.groups.map((group: string, gi: number) => (
-                        <span
-                          key={`g-${match.index}-${gi}`}
-                          className="inline-flex items-center gap-1 rounded border border-border bg-muted px-2 py-0.5 font-mono text-[11px]"
-                        >
-                          <span className="text-muted-foreground">
-                            ${gi + 1}
-                          </span>
-                          <span className="text-foreground">{group}</span>
-                        </span>
-                      ))}
+                return (
+                  <div key={matchKey} className="px-4 py-2.5">
+                    <div className="flex items-center gap-3">
+                      <span className="w-6 flex-shrink-0 text-right text-[11px] font-medium tabular-nums text-muted-foreground">
+                        {i + 1}
+                      </span>
+                      <code className="flex-1 break-all font-mono text-[13px] text-foreground">
+                        {match.fullMatch}
+                      </code>
+                      <span className="flex-shrink-0 text-[11px] tabular-nums text-muted-foreground">
+                        idx {match.index}
+                      </span>
+                      <CopyButton text={match.fullMatch} />
                     </div>
-                  )}
 
-                  {Object.keys(match.namedGroups).length > 0 && (
-                    <div className="ml-9 mt-1.5 flex flex-wrap gap-1.5">
-                      {Object.entries(match.namedGroups).map(
-                        ([name, value]) => (
+                    {captureGroups.length > 0 && (
+                      <div className="ml-9 mt-1.5 flex flex-wrap gap-1.5">
+                        {captureGroups.map((group) => (
                           <span
-                            key={`ng-${match.index}-${name}`}
-                            className="inline-flex items-center gap-1 rounded border border-border bg-accent px-2 py-0.5 font-mono text-[11px]"
+                            key={group.key}
+                            className="inline-flex items-center gap-1 rounded border border-border bg-muted px-2 py-0.5 font-mono text-[11px]"
                           >
                             <span className="text-muted-foreground">
-                              {name}
+                              {group.label}
                             </span>
-                            <span className="text-accent-foreground">
-                              {value}
+                            <span className="text-foreground">
+                              {group.value}
                             </span>
                           </span>
-                        ),
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
+                        ))}
+                      </div>
+                    )}
+
+                    {Object.keys(match.namedGroups).length > 0 && (
+                      <div className="ml-9 mt-1.5 flex flex-wrap gap-1.5">
+                        {Object.entries(match.namedGroups).map(
+                          ([name, value]) => (
+                            <span
+                              key={`ng-${match.index}-${name}`}
+                              className="inline-flex items-center gap-1 rounded border border-border bg-accent px-2 py-0.5 font-mono text-[11px]"
+                            >
+                              <span className="text-muted-foreground">
+                                {name}
+                              </span>
+                              <span className="text-accent-foreground">
+                                {value}
+                              </span>
+                            </span>
+                          ),
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         ) : (
