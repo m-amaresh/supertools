@@ -326,9 +326,9 @@ export default function TextDiff() {
               ) : (
                 <>
                   {(showAllDiff ? diff : diff.slice(0, DIFF_RENDER_LIMIT)).map(
-                    (line, i) => (
+                    (line) => (
                       <div
-                        key={`${line.type}-${line.leftNum ?? "x"}-${line.rightNum ?? "x"}-${i}`}
+                        key={`${line.type}-${line.leftNum ?? "x"}-${line.rightNum ?? "x"}`}
                         className={`flex ${
                           line.type === "added"
                             ? "bg-success/12"

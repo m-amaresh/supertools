@@ -7,7 +7,7 @@
 - Privacy-first local processing
 - Safe defaults for large input and file handling
 
-## Current Tool Routes (22)
+## Current Tool Routes (26)
 
 ### Encoding
 
@@ -21,6 +21,9 @@
 - `/tools/encode/jwt`
 - `/tools/encode/crc32`
 - `/tools/encode/rsa`
+- `/tools/encode/base58`
+- `/tools/encode/url-parser`
+- `/tools/encode/tls-cert`
 
 ### Text
 
@@ -35,6 +38,7 @@
 - `/tools/data/yaml`
 - `/tools/data/baseconv`
 - `/tools/data/color`
+- `/tools/data/csv`
 
 ### IDs
 
