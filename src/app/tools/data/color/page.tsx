@@ -61,12 +61,13 @@ export default function ColorConverter() {
 
   const rgbString = `rgb(${result.rgb.r}, ${result.rgb.g}, ${result.rgb.b})`;
   const hslString = `hsl(${result.hsl.h}, ${result.hsl.s}%, ${result.hsl.l}%)`;
+  const oklchString = `oklch(${(result.oklch.l * 100).toFixed(2)}% ${result.oklch.c.toFixed(3)} ${result.oklch.h.toFixed(2)})`;
 
   return (
     <ToolPage>
       <ToolHeader
         title="Color Converter"
-        description="Convert between HEX, RGB, and HSL with palette generation"
+        description="Convert between HEX, RGB, HSL, and OKLCH with palette generation"
       />
 
       <ToolCard>
@@ -74,7 +75,7 @@ export default function ColorConverter() {
           <div className="flex items-center gap-2">
             {hasResult && (
               <CopyButton
-                text={`HEX: ${result.hex}\nRGB: ${rgbString}\nHSL: ${hslString}`}
+                text={`HEX: ${result.hex}\nRGB: ${rgbString}\nHSL: ${hslString}\nOKLCH: ${oklchString}`}
               />
             )}
           </div>
@@ -148,7 +149,7 @@ export default function ColorConverter() {
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="#ff6600, rgb(255, 102, 0), or hsl(24, 100%, 50%)"
+                placeholder="#ff6600, rgb(255,102,0), hsl(24,100%,50%), or oklch(65% 0.2 30)"
                 aria-label="Color value"
                 className="h-10 flex-1 text-[13px] font-mono"
                 spellCheck={false}
@@ -189,6 +190,14 @@ export default function ColorConverter() {
                   {hslString}
                 </code>
                 <CopyButton text={hslString} />
+              </div>
+
+              <div className="flex items-center gap-4 px-4 py-3">
+                <ToolMeta className="tool-meta-key">OKLCH</ToolMeta>
+                <code className="flex-1 font-mono text-[13px] text-foreground">
+                  {oklchString}
+                </code>
+                <CopyButton text={oklchString} />
               </div>
             </div>
 
@@ -235,8 +244,8 @@ export default function ColorConverter() {
 
       <ToolFootnote>
         Accepts HEX (#rgb, #rrggbb), RGB (rgb(r, g, b)), HSL (hsl(h, s%, l%)),
-        or bare values (r, g, b). All processing happens locally in your
-        browser.
+        OKLCH (oklch(L% C H)), or bare values (r, g, b). All processing happens
+        locally in your browser.
       </ToolFootnote>
     </ToolPage>
   );
