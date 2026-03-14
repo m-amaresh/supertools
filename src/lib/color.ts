@@ -10,10 +10,17 @@ export interface HSL {
   l: number;
 }
 
+export interface OKLCH {
+  l: number; // 0–1
+  c: number; // 0–~0.4
+  h: number; // 0–360
+}
+
 export interface ColorResult {
   hex: string;
   rgb: RGB;
   hsl: HSL;
+  oklch: OKLCH;
   error: string | null;
 }
 
@@ -106,12 +113,69 @@ export function hslToRgb(h: number, s: number, l: number): RGB {
   };
 }
 
+function linearize(c: number): number {
+  return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+}
+
+function delinearize(c: number): number {
+  return c <= 0.0031308 ? 12.92 * c : 1.055 * c ** (1 / 2.4) - 0.055;
+}
+
+export function rgbToOklch(r: number, g: number, b: number): OKLCH {
+  const lr = linearize(r / 255);
+  const lg = linearize(g / 255);
+  const lb = linearize(b / 255);
+
+  const x = 0.4124564 * lr + 0.3575761 * lg + 0.1804375 * lb;
+  const y = 0.2126729 * lr + 0.7151522 * lg + 0.072175 * lb;
+  const z = 0.0193339 * lr + 0.119192 * lg + 0.9503041 * lb;
+
+  const l_ = Math.cbrt(0.8189330101 * x + 0.3618667424 * y - 0.1288597137 * z);
+  const m_ = Math.cbrt(0.0329845436 * x + 0.9293118715 * y + 0.0361456387 * z);
+  const s_ = Math.cbrt(0.0482003018 * x + 0.2643662691 * y + 0.633851707 * z);
+
+  const L = 0.2104542553 * l_ + 0.793617785 * m_ - 0.0040720468 * s_;
+  const a = 1.9779984951 * l_ - 2.428592205 * m_ + 0.4505937099 * s_;
+  const bk = 0.0259040371 * l_ + 0.7827717662 * m_ - 0.808675766 * s_;
+
+  const C = Math.sqrt(a * a + bk * bk);
+  let H = (Math.atan2(bk, a) * 180) / Math.PI;
+  if (H < 0) H += 360;
+
+  return { l: L, c: C, h: H };
+}
+
+export function oklchToRgb(l: number, c: number, h: number): RGB {
+  const hRad = (h * Math.PI) / 180;
+  const a = c * Math.cos(hRad);
+  const bk = c * Math.sin(hRad);
+
+  const l_ = l + 0.3963377774 * a + 0.2158037573 * bk;
+  const m_ = l - 0.1055613458 * a - 0.0638541728 * bk;
+  const s_ = l - 0.0894841775 * a - 1.291485548 * bk;
+
+  const lc = l_ ** 3;
+  const mc = m_ ** 3;
+  const sc = s_ ** 3;
+
+  const lr = +4.0767416621 * lc - 3.3077115913 * mc + 0.2309699292 * sc;
+  const lg = -1.2684380046 * lc + 2.6097574011 * mc - 0.3413193965 * sc;
+  const lb = -0.0041960863 * lc - 0.7034186147 * mc + 1.707614701 * sc;
+
+  return {
+    r: Math.round(Math.max(0, Math.min(1, delinearize(lr))) * 255),
+    g: Math.round(Math.max(0, Math.min(1, delinearize(lg))) * 255),
+    b: Math.round(Math.max(0, Math.min(1, delinearize(lb))) * 255),
+  };
+}
+
 export function parseColor(input: string): ColorResult {
   const trimmed = input.trim();
   const errorResult: ColorResult = {
     hex: "",
     rgb: { r: 0, g: 0, b: 0 },
     hsl: { h: 0, s: 0, l: 0 },
+    oklch: { l: 0, c: 0, h: 0 },
     error: "Unrecognized color format",
   };
 
@@ -128,6 +192,7 @@ export function parseColor(input: string): ColorResult {
         hex: rgbToHex(rgb.r, rgb.g, rgb.b),
         rgb,
         hsl: rgbToHsl(rgb.r, rgb.g, rgb.b),
+        oklch: rgbToOklch(rgb.r, rgb.g, rgb.b),
         error: null,
       };
     }
@@ -146,6 +211,7 @@ export function parseColor(input: string): ColorResult {
         hex: rgbToHex(r, g, b),
         rgb: { r, g, b },
         hsl: rgbToHsl(r, g, b),
+        oklch: rgbToOklch(r, g, b),
         error: null,
       };
     }
@@ -165,6 +231,29 @@ export function parseColor(input: string): ColorResult {
         hex: rgbToHex(rgb.r, rgb.g, rgb.b),
         rgb,
         hsl: { h, s, l },
+        oklch: rgbToOklch(rgb.r, rgb.g, rgb.b),
+        error: null,
+      };
+    }
+  }
+
+  // Try oklch(L C H) — L may be 0–1 or 0–100%
+  const oklchMatch = trimmed.match(
+    /^oklch\(\s*([\d.]+)(%?)\s+([\d.]+)\s+([\d.]+)\s*\)$/,
+  );
+  if (oklchMatch) {
+    let l = Number.parseFloat(oklchMatch[1]);
+    const isPct = oklchMatch[2] === "%";
+    const c = Number.parseFloat(oklchMatch[3]);
+    const h = Number.parseFloat(oklchMatch[4]);
+    if (isPct) l /= 100;
+    if (l >= 0 && l <= 1 && c >= 0 && h >= 0 && h <= 360) {
+      const rgb = oklchToRgb(l, c, h);
+      return {
+        hex: rgbToHex(rgb.r, rgb.g, rgb.b),
+        rgb,
+        hsl: rgbToHsl(rgb.r, rgb.g, rgb.b),
+        oklch: { l, c, h },
         error: null,
       };
     }
@@ -181,6 +270,7 @@ export function parseColor(input: string): ColorResult {
         hex: rgbToHex(r, g, b),
         rgb: { r, g, b },
         hsl: rgbToHsl(r, g, b),
+        oklch: rgbToOklch(r, g, b),
         error: null,
       };
     }
