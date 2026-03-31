@@ -38,14 +38,14 @@
     "yaml": "2.8.3"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.4.8",
+    "@biomejs/biome": "2.4.10",
     "@tailwindcss/postcss": "4.2.2",
     "@types/node": "25.5.0",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
-    "shadcn": "4.1.0",
+    "shadcn": "4.1.1",
     "tailwindcss": "4.2.2",
     "typescript": "6.0.2",
-    "vitest": "4.1.1"
+    "vitest": "4.1.2"
   }
 }
