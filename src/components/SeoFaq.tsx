@@ -77,8 +77,9 @@ export function SeoFaq({
             How to Use {toolName}
           </h2>
           <ol className="mt-2 list-inside list-decimal space-y-1.5 text-[14px] leading-relaxed text-muted-foreground">
-            {howToUse.map((step) => (
-              <li key={step}>{step}</li>
+            {howToUse.map((step, i) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: static ordered list, never reordered
+              <li key={i}>{step}</li>
             ))}
           </ol>
         </div>

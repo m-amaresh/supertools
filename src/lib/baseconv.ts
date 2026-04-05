@@ -77,12 +77,8 @@ export function convertBase(
       parsed = parsed * base + BigInt(digit);
     }
 
-    if (isNegative) {
-      parsed = BigInt(-1) * parsed;
-    }
-
     const sign = isNegative ? "-" : "";
-    const absParsed = isNegative ? BigInt(-1) * parsed : parsed;
+    const absParsed = parsed;
 
     return {
       bin: sign + absParsed.toString(2),

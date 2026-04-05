@@ -32,7 +32,7 @@ import {
   generatePasswords,
   type PasswordOptions,
 } from "@/lib/password";
-import { parseStrictPositiveInt } from "@/lib/utils";
+import { parseNonNegativeInt } from "@/lib/utils";
 
 const lengthOptions = [
   { value: "12", label: "12" },
@@ -92,7 +92,7 @@ export default function PasswordGenerator() {
   );
 
   const countInput = countMode === "custom" ? customCount : countMode;
-  const parsedCustomCount = parseStrictPositiveInt(countInput);
+  const parsedCustomCount = parseNonNegativeInt(countInput);
   const countError =
     parsedCustomCount === null
       ? "Count must be a whole number."

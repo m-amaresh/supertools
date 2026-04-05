@@ -9,7 +9,9 @@ export interface JsonValidationResult {
 }
 
 // Parse JSON and extract error position as line/column from the character
-// offset reported by the engine (V8-style "at position N" messages).
+// offset reported by the engine. V8 (Chrome/Edge/Node) includes "at position N"
+// in the error message; Firefox and Safari use different formats so line/column
+// will be undefined on those engines — callers must handle the absent case.
 export function validateJson(input: string): JsonValidationResult {
   if (!input.trim()) {
     return { valid: true };

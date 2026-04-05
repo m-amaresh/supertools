@@ -27,7 +27,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { generateLorem, type LoremUnit } from "@/lib/lorem";
-import { parseStrictPositiveInt } from "@/lib/utils";
+import { parseNonNegativeInt } from "@/lib/utils";
 
 const unitOptions = [
   { value: "paragraphs", label: "Paragraphs" },
@@ -57,7 +57,7 @@ export default function LoremIpsumGenerator() {
   const [startWithLorem, setStartWithLorem] = useState(true);
 
   const countInput = countMode === "custom" ? customCount : countMode;
-  const parsedCustomCount = parseStrictPositiveInt(countInput);
+  const parsedCustomCount = parseNonNegativeInt(countInput);
   const countError =
     parsedCustomCount === null
       ? "Count must be a whole number."

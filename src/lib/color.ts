@@ -247,9 +247,10 @@ export function parseColor(input: string): ColorResult {
     }
   }
 
-  // Try oklch(L C H) — L may be 0–1 or 0–100%
+  // Try oklch(L C H) — L may be 0–1 or 0–100%, H may have a deg suffix,
+  // and values may be space-separated or comma-separated (both are valid CSS).
   const oklchMatch = trimmed.match(
-    /^oklch\(\s*([\d.]+)(%?)\s+([\d.]+)\s+([\d.]+)\s*\)$/,
+    /^oklch\(\s*([\d.]+)(%?)\s*[,\s]\s*([\d.]+)\s*[,\s]\s*([\d.]+)(?:deg)?\s*\)$/,
   );
   if (oklchMatch) {
     let l = Number.parseFloat(oklchMatch[1]);
@@ -257,7 +258,9 @@ export function parseColor(input: string): ColorResult {
     const c = Number.parseFloat(oklchMatch[3]);
     const h = Number.parseFloat(oklchMatch[4]);
     if (isPct) l /= 100;
-    if (l >= 0 && l <= 1 && c >= 0 && h >= 0 && h <= 360) {
+    // Chroma above 0.5 is outside sRGB gamut; clamp rather than reject so
+    // wide-gamut inputs still produce a valid (clamped) output colour.
+    if (l >= 0 && l <= 1 && c >= 0 && c <= 0.5 && h >= 0 && h <= 360) {
       const rgb = oklchToRgb(l, c, h);
       return {
         hex: rgbToHex(rgb.r, rgb.g, rgb.b),

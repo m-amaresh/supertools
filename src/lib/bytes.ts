@@ -86,7 +86,7 @@ export function base64ToBase64Url(base64: string): string {
 }
 
 export function base64UrlToBase64(base64Url: string): string {
-  if (!/^[A-Za-z0-9\-_]*$/.test(base64Url)) {
+  if (!base64Url || !/^[A-Za-z0-9\-_]+$/.test(base64Url)) {
     throw new Error("Invalid base64url payload");
   }
   const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");

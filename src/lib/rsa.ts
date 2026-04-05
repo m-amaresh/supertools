@@ -12,6 +12,8 @@ import {
 
 export type RsaSignatureEncoding = "base64" | "base64url" | "hex";
 
+// All sign/verify operations use RSASSA-PKCS1-v1_5 with SHA-256.
+// The hash is intentionally fixed; callers have no algorithm parameter.
 const RSA_SIGN_ALG: RsaHashedImportParams = {
   name: "RSASSA-PKCS1-v1_5",
   hash: "SHA-256",

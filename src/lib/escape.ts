@@ -14,10 +14,6 @@ const HTML_UNESCAPE_MAP: Record<string, string> = {
   "&gt;": ">",
   "&quot;": '"',
   "&#39;": "'",
-  "&#x27;": "'",
-  "&#x2F;": "/",
-  "&apos;": "'",
-  "&nbsp;": "\u00A0",
 };
 
 const REGEX_SPECIAL = /[.*+?^${}()|[\]\\]/g;
@@ -48,7 +44,7 @@ export function unescapeString(input: string, mode: EscapeMode): string {
   switch (mode) {
     case "html":
       return input.replace(
-        /&(?:amp|lt|gt|quot|apos|nbsp|#39|#x27|#x2F);/g,
+        /&(?:amp|lt|gt|quot|#39);/g,
         (entity) => HTML_UNESCAPE_MAP[entity] || entity,
       );
 

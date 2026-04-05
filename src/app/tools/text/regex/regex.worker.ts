@@ -9,6 +9,7 @@ interface RegexMatch {
 interface RegexResult {
   matches: RegexMatch[];
   error: string | null;
+  truncated: boolean;
 }
 
 interface WorkerPayload {
@@ -28,15 +29,13 @@ function isWorkerPayload(value: unknown): value is WorkerPayload {
 }
 
 self.onmessage = (event: MessageEvent<WorkerPayload>) => {
-  // Ignore cross-origin messages if origin is present (dedicated workers may use an empty string).
-  if (event.origin && event.origin !== self.location.origin) {
-    return;
-  }
+  const MATCH_LIMIT = 10000;
 
   if (!isWorkerPayload(event.data)) {
     self.postMessage({
       matches: [],
       error: "Invalid request payload",
+      truncated: false,
     } satisfies RegexResult);
     return;
   }
@@ -44,19 +43,26 @@ self.onmessage = (event: MessageEvent<WorkerPayload>) => {
   const { pattern, flags, testString } = event.data;
 
   if (!pattern) {
-    self.postMessage({ matches: [], error: null } satisfies RegexResult);
+    self.postMessage({
+      matches: [],
+      error: null,
+      truncated: false,
+    } satisfies RegexResult);
     return;
   }
 
   try {
     const regex = new RegExp(pattern, flags);
     const matches: RegexMatch[] = [];
+    let truncated = false;
 
     if (flags.includes("g")) {
       let match = regex.exec(testString);
-      let safety = 0;
-      while (match !== null && safety < 10000) {
-        safety++;
+      while (match !== null) {
+        if (matches.length >= MATCH_LIMIT) {
+          truncated = true;
+          break;
+        }
         matches.push({
           fullMatch: match[0],
           index: match.index,
@@ -83,12 +89,13 @@ self.onmessage = (event: MessageEvent<WorkerPayload>) => {
       }
     }
 
-    self.postMessage({ matches, error: null } satisfies RegexResult);
+    self.postMessage({ matches, error: null, truncated } satisfies RegexResult);
   } catch (error) {
     self.postMessage({
       matches: [],
       error:
         error instanceof Error ? error.message : "Invalid regular expression",
+      truncated: false,
     } satisfies RegexResult);
   }
 };

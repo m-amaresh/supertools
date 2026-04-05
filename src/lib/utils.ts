@@ -10,6 +10,3 @@ export function parseNonNegativeInt(value: string): number | null {
   if (!/^\d+$/.test(trimmed)) return null;
   return Number(trimmed);
 }
-
-/** @deprecated Use parseNonNegativeInt instead */
-export const parseStrictPositiveInt = parseNonNegativeInt;

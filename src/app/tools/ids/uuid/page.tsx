@@ -26,7 +26,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { parseStrictPositiveInt } from "@/lib/utils";
+import { parseNonNegativeInt } from "@/lib/utils";
 import { generateBulkUuids, type UuidOptions } from "@/lib/uuid";
 
 const countOptions = [
@@ -55,7 +55,7 @@ export default function UuidGenerator() {
   });
 
   const countInput = countMode === "custom" ? customCount : countMode;
-  const parsedCustomCount = parseStrictPositiveInt(countInput);
+  const parsedCustomCount = parseNonNegativeInt(countInput);
   const countError =
     parsedCustomCount === null
       ? "Count must be a whole number."

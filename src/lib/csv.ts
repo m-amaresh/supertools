@@ -51,13 +51,13 @@ function encodeField(field: string, delimiter: string): string {
 function parseDelimitedRows(input: string, delimiter: string): string[][] {
   const rows: string[][] = [];
   let currentRow: string[] = [];
-  let currentField = "";
+  let currentFieldChars: string[] = [];
   let inQuotes = false;
   let justClosedQuote = false;
 
   const pushField = () => {
-    currentRow.push(currentField);
-    currentField = "";
+    currentRow.push(currentFieldChars.join(""));
+    currentFieldChars = [];
     justClosedQuote = false;
   };
 
@@ -73,14 +73,14 @@ function parseDelimitedRows(input: string, delimiter: string): string[][] {
     if (inQuotes) {
       if (ch === '"') {
         if (input[i + 1] === '"') {
-          currentField += '"';
+          currentFieldChars.push('"');
           i++;
         } else {
           inQuotes = false;
           justClosedQuote = true;
         }
       } else {
-        currentField += ch;
+        currentFieldChars.push(ch);
       }
       continue;
     }
@@ -101,7 +101,7 @@ function parseDelimitedRows(input: string, delimiter: string): string[][] {
     }
 
     if (ch === '"') {
-      if (currentField.length === 0) {
+      if (currentFieldChars.length === 0) {
         inQuotes = true;
         continue;
       }
@@ -121,7 +121,7 @@ function parseDelimitedRows(input: string, delimiter: string): string[][] {
       continue;
     }
 
-    currentField += ch;
+    currentFieldChars.push(ch);
   }
 
   if (inQuotes) {
@@ -198,14 +198,13 @@ function objectRecordsToRows(
     throw new Error("JSON array must contain only objects or only arrays");
   }
 
-  const keys: string[] = [];
+  const keySet = new Set<string>();
   for (const row of value as Array<Record<string, unknown>>) {
     for (const key of Object.keys(row)) {
-      if (!keys.includes(key)) {
-        keys.push(key);
-      }
+      keySet.add(key);
     }
   }
+  const keys = [...keySet];
 
   const rows: string[][] = [];
   if (includeHeader) {

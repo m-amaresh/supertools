@@ -35,7 +35,9 @@ interface ByteHmacOptions {
   outputEncoding?: HashOutputEncoding;
 }
 
-const MD5_YIELD_BLOCK_INTERVAL = 1024;
+// Yield to the event loop every 64 blocks (4 KB) to stay within the ~16 ms
+// frame budget on slower devices. 1024 blocks (64 KB) was too coarse.
+const MD5_YIELD_BLOCK_INTERVAL = 64;
 
 // Lazy-loaded @noble/hashes modules. Cached on success, reset on failure
 // so a transient import error doesn't permanently break the session.
@@ -237,25 +239,30 @@ export async function generateHash(
   return encodeDigest(new Uint8Array(hashBuffer), outputEncoding);
 }
 
-export async function generateAllHashes(
-  input: string,
-  options: HashOptions = {},
+// Collect results from Promise.allSettled into a HashAlgorithm-keyed record,
+// substituting a fallback string for any rejected promise.
+async function settleAllAlgorithms(
+  tasks: Promise<string>[],
 ): Promise<Record<HashAlgorithm, string>> {
-  const results = await Promise.allSettled(
-    hashAlgorithms.map((algorithm) => generateHash(input, algorithm, options)),
-  );
-
+  const results = await Promise.allSettled(tasks);
   const output = {} as Record<HashAlgorithm, string>;
   for (let i = 0; i < hashAlgorithms.length; i++) {
-    const algorithm = hashAlgorithms[i];
     const result = results[i];
-    output[algorithm] =
+    output[hashAlgorithms[i]] =
       result.status === "fulfilled"
         ? result.value
         : "Unavailable in this browser/context";
   }
-
   return output;
+}
+
+export async function generateAllHashes(
+  input: string,
+  options: HashOptions = {},
+): Promise<Record<HashAlgorithm, string>> {
+  return settleAllAlgorithms(
+    hashAlgorithms.map((algorithm) => generateHash(input, algorithm, options)),
+  );
 }
 
 export async function generateHashFromBytes(
@@ -287,23 +294,11 @@ export async function generateAllHashesFromBytes(
   inputBytes: Uint8Array,
   options: ByteHashOptions = {},
 ): Promise<Record<HashAlgorithm, string>> {
-  const results = await Promise.allSettled(
+  return settleAllAlgorithms(
     hashAlgorithms.map((algorithm) =>
       generateHashFromBytes(inputBytes, algorithm, options),
     ),
   );
-
-  const output = {} as Record<HashAlgorithm, string>;
-  for (let i = 0; i < hashAlgorithms.length; i++) {
-    const algorithm = hashAlgorithms[i];
-    const result = results[i];
-    output[algorithm] =
-      result.status === "fulfilled"
-        ? result.value
-        : "Unavailable in this browser/context";
-  }
-
-  return output;
 }
 
 export async function generateHmac(
@@ -359,23 +354,11 @@ export async function generateAllHmacs(
   key: string,
   options: HmacOptions = {},
 ): Promise<Record<HashAlgorithm, string>> {
-  const results = await Promise.allSettled(
+  return settleAllAlgorithms(
     hashAlgorithms.map((algorithm) =>
       generateHmac(input, key, algorithm, options),
     ),
   );
-
-  const output = {} as Record<HashAlgorithm, string>;
-  for (let i = 0; i < hashAlgorithms.length; i++) {
-    const algorithm = hashAlgorithms[i];
-    const result = results[i];
-    output[algorithm] =
-      result.status === "fulfilled"
-        ? result.value
-        : "Unavailable in this browser/context";
-  }
-
-  return output;
 }
 
 export async function generateHmacFromBytes(
@@ -425,23 +408,11 @@ export async function generateAllHmacsFromBytes(
   key: string,
   options: ByteHmacOptions = {},
 ): Promise<Record<HashAlgorithm, string>> {
-  const results = await Promise.allSettled(
+  return settleAllAlgorithms(
     hashAlgorithms.map((algorithm) =>
       generateHmacFromBytes(inputBytes, key, algorithm, options),
     ),
   );
-
-  const output = {} as Record<HashAlgorithm, string>;
-  for (let i = 0; i < hashAlgorithms.length; i++) {
-    const algorithm = hashAlgorithms[i];
-    const result = results[i];
-    output[algorithm] =
-      result.status === "fulfilled"
-        ? result.value
-        : "Unavailable in this browser/context";
-  }
-
-  return output;
 }
 
 export const hashAlgorithms: HashAlgorithm[] = [
