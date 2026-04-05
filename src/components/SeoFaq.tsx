@@ -7,13 +7,23 @@ export interface SeoFaqItem {
 
 interface SeoFaqProps {
   title: string;
+  about?: string;
+  howToUse?: string[];
   items: SeoFaqItem[];
   className?: string;
 }
 
-// Renders FAQ items as visible content and injects a JSON-LD FAQPage
-// schema for search engine rich results.
-export function SeoFaq({ title, items, className }: SeoFaqProps) {
+// Renders an about section, how-to steps, and FAQ items as visible content,
+// injecting JSON-LD schemas (FAQPage + HowTo) for search engine rich results.
+export function SeoFaq({
+  title,
+  about,
+  howToUse,
+  items,
+  className,
+}: SeoFaqProps) {
+  const toolName = title.replace(/\s*FAQ$/, "");
+
   const faqSchema = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
@@ -27,9 +37,53 @@ export function SeoFaq({ title, items, className }: SeoFaqProps) {
     })),
   };
 
+  const howToSchema =
+    howToUse && howToUse.length > 0
+      ? {
+          "@context": "https://schema.org",
+          "@type": "HowTo",
+          name: `How to use ${toolName}`,
+          step: howToUse.map((text, i) => ({
+            "@type": "HowToStep",
+            position: i + 1,
+            text,
+          })),
+        }
+      : null;
+
   return (
-    <section className={cn("mt-6", className)} aria-label={title}>
+    <section className={cn("mt-6 space-y-4", className)} aria-label={title}>
       <script type="application/ld+json">{JSON.stringify(faqSchema)}</script>
+      {howToSchema && (
+        <script type="application/ld+json">
+          {JSON.stringify(howToSchema)}
+        </script>
+      )}
+
+      {about && (
+        <div className="glass-panel rounded-xl border border-border p-4 sm:p-5">
+          <h2 className="text-[15px] font-semibold tracking-tight text-foreground">
+            About {toolName}
+          </h2>
+          <p className="mt-2 text-[14px] leading-relaxed text-muted-foreground">
+            {about}
+          </p>
+        </div>
+      )}
+
+      {howToUse && howToUse.length > 0 && (
+        <div className="glass-panel rounded-xl border border-border p-4 sm:p-5">
+          <h2 className="text-[15px] font-semibold tracking-tight text-foreground">
+            How to Use {toolName}
+          </h2>
+          <ol className="mt-2 list-inside list-decimal space-y-1.5 text-[14px] leading-relaxed text-muted-foreground">
+            {howToUse.map((step) => (
+              <li key={step}>{step}</li>
+            ))}
+          </ol>
+        </div>
+      )}
+
       <div className="glass-panel rounded-xl border border-border p-4 sm:p-5">
         <h2 className="text-[15px] font-semibold tracking-tight text-foreground">
           {title}

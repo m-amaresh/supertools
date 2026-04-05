@@ -58,9 +58,6 @@ export const metadata: Metadata = {
   robots: shouldIndexSite()
     ? { index: true, follow: true }
     : { index: false, follow: false },
-  verification: {
-    google: process.env.GOOGLE_SITE_VERIFICATION,
-  },
 };
 
 // suppressHydrationWarning on <html> is required by next-themes —

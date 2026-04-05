@@ -6,8 +6,15 @@ interface ToolSeoFaqServerProps {
 }
 
 export function ToolSeoFaqServer({ path }: ToolSeoFaqServerProps) {
-  const faq = TOOL_FAQ_BY_PATH[path];
-  if (!faq) return null;
+  const section = TOOL_FAQ_BY_PATH[path];
+  if (!section) return null;
 
-  return <SeoFaq title={faq.title} items={faq.items} />;
+  return (
+    <SeoFaq
+      title={section.title}
+      about={section.about}
+      howToUse={section.howToUse}
+      items={section.items}
+    />
+  );
 }
