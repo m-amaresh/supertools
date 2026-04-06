@@ -9,7 +9,7 @@
   </a>
   <br/>
   <img src="https://img.shields.io/badge/node-24.x-339933?style=for-the-badge&logo=node.js&logoColor=white" />
-  <img src="https://img.shields.io/badge/Next.js-16.2.0-black?style=for-the-badge&logo=next.js&logoColor=white" />
+  <img src="https://img.shields.io/badge/Next.js-16.2.2-black?style=for-the-badge&logo=next.js&logoColor=white" />
 </p>
 
 A fast, privacy-first suite of developer utilities that run entirely in your browser. No data leaves your machine.
@@ -19,7 +19,7 @@ A fast, privacy-first suite of developer utilities that run entirely in your bro
 - **26 browser-based tools** across encoding, data conversion, cryptography, text processing, ID generation, and time utilities
 - **Client-side processing** — payloads (text, files, tokens, secrets) are transformed locally, never sent to a server
 - **Consistent UX** — every tool follows the same scaffold, toolbar, status, and output patterns
-- **Modern stack** — Next.js 16, React 19, TypeScript 5.9, Tailwind CSS 4, Biome, Vitest
+- **Modern stack** — Next.js 16, React 19, TypeScript 6.0.2, Tailwind CSS 4, Biome, Vitest
 
 ### Tool Inventory
 
@@ -81,7 +81,7 @@ public/             Static assets
 | Layer | Technology |
 |---|---|
 | Framework | Next.js 16 (App Router) |
-| Language | TypeScript 5.9 |
+| Language | TypeScript 6.0.2 |
 | Styling | Tailwind CSS 4 + shadcn/ui |
 | Icons | Font Awesome 7 (tree-shaken path imports) |
 | Theming | next-themes (light, dark, system) |

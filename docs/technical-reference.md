@@ -18,7 +18,7 @@ pnpm build
 - Package manager: `pnpm`
 - Node target: `24.x`
 - Framework: Next.js 16 App Router
-- TypeScript: `5.9`
+- TypeScript: `6.0.2`
 - Linting/formatting: Biome
 - Unit tests: Vitest
 
