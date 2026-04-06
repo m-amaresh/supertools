@@ -1,4 +1,5 @@
 {
+  "$schema": "https://biomejs.dev/schemas/2.4.10/schema.json",
   "vcs": {
     "enabled": true,
     "clientKind": "git",
@@ -21,6 +22,12 @@
     "indentStyle": "space",
     "indentWidth": 2
   },
+  "css": {
+    "parser": {
+      "cssModules": false,
+      "tailwindDirectives": true
+    }
+  },
   "linter": {
     "enabled": true,
     "rules": {
@@ -39,11 +46,6 @@
       "source": {
         "organizeImports": "on"
       }
-    }
-  },
-  "css": {
-    "parser": {
-      "tailwindDirectives": true
     }
   }
 }

@@ -52,7 +52,7 @@ Open `http://localhost:3100`.
 | `pnpm lint` | Lint and format check (Biome) |
 | `pnpm format` | Auto-format (Biome) |
 | `pnpm test:run` | Run all unit tests |
-| `pnpm exec tsc --noEmit` | Type-check without emitting |
+| `pnpm typecheck` | Type-check without emitting |
 
 ## Privacy Model
 
@@ -100,7 +100,7 @@ Local development works without configuration. For a real production deployment,
 ```bash
 pnpm lint
 pnpm test:run
-pnpm exec tsc --noEmit
+pnpm typecheck
 pnpm build
 ```
 
