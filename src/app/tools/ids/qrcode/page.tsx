@@ -43,17 +43,18 @@ export default function QrCodeGenerator() {
     useState<QrErrorCorrection>("M");
   const [matrix, setMatrix] = useState<QrMatrix | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [pngUrl, setPngUrl] = useState<string | null>(null);
+  const [isExportingPng, setIsExportingPng] = useState(false);
 
-  // Re-generate the QR whenever input or EC level changes. The qrcode encoder
-  // is fast enough at expected payload sizes that no debounce or worker is needed.
+  // Generate only the matrix on input changes — preview is rendered as native
+  // React rects, so PNG is not needed until the user clicks Download. Keeping
+  // PNG out of the hot path also means a PNG failure can't clobber a valid
+  // preview matrix.
   useEffect(() => {
     let cancelled = false;
 
     if (!input) {
       setMatrix(null);
       setError(null);
-      setPngUrl(null);
       return;
     }
 
@@ -63,15 +64,9 @@ export default function QrCodeGenerator() {
         if (cancelled) return;
         setMatrix(next);
         setError(null);
-        const png = await generateQrPngDataUrl(input, {
-          errorCorrection,
-          scale: 12,
-        });
-        if (!cancelled) setPngUrl(png);
       } catch (e) {
         if (cancelled) return;
         setMatrix(null);
-        setPngUrl(null);
         setError(e instanceof Error ? e.message : "Failed to generate QR code");
       }
     })();
@@ -90,7 +85,6 @@ export default function QrCodeGenerator() {
     setInput("");
     setMatrix(null);
     setError(null);
-    setPngUrl(null);
   }, []);
 
   const downloadSvg = useCallback(() => {
@@ -105,10 +99,23 @@ export default function QrCodeGenerator() {
     URL.revokeObjectURL(url);
   }, [matrix]);
 
-  const downloadPng = useCallback(() => {
-    if (!pngUrl) return;
-    triggerDownload(pngUrl, "qrcode.png");
-  }, [pngUrl]);
+  const downloadPng = useCallback(async () => {
+    if (!input) return;
+    setIsExportingPng(true);
+    try {
+      const png = await generateQrPngDataUrl(input, {
+        errorCorrection,
+        scale: 12,
+      });
+      triggerDownload(png, "qrcode.png");
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "Failed to render PNG download",
+      );
+    } finally {
+      setIsExportingPng(false);
+    }
+  }, [input, errorCorrection]);
 
   return (
     <ToolPage>
@@ -134,14 +141,14 @@ export default function QrCodeGenerator() {
                   type="button"
                   variant="secondary"
                   onClick={downloadPng}
-                  disabled={!pngUrl}
+                  disabled={isExportingPng}
                 >
                   <FontAwesomeIcon
                     icon={faDownload}
                     className="h-3 w-3"
                     aria-hidden="true"
                   />
-                  PNG
+                  {isExportingPng ? "Rendering…" : "PNG"}
                 </Button>
               </>
             )}

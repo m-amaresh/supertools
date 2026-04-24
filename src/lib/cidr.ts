@@ -359,3 +359,332 @@ export function parseCidr(input: string): CidrResult {
 
   return { info: buildIpv4Info(addr, prefix), error: null };
 }
+
+export interface SubnetRequest {
+  id: string;
+  name: string;
+  prefix: number;
+}
+
+export interface AllocatedSubnet {
+  id: string | null;
+  name: string | null;
+  cidr: string;
+  prefix: number;
+  network: string;
+  broadcast: string | null;
+  rangeStart: string;
+  rangeEnd: string;
+  hostCount: string;
+  usableHostCount: string;
+}
+
+export interface VlsmResult {
+  version: IpVersion | null;
+  parentCidr: string | null;
+  allocated: AllocatedSubnet[];
+  remaining: AllocatedSubnet[];
+  requestedTotal: string;
+  parentCapacity: string;
+  error: string | null;
+}
+
+const EMPTY_VLSM_RESULT: VlsmResult = {
+  version: null,
+  parentCidr: null,
+  allocated: [],
+  remaining: [],
+  requestedTotal: "0",
+  parentCapacity: "0",
+  error: null,
+};
+
+function formatAddress(value: bigint, version: IpVersion): string {
+  return version === 4 ? ipv4ToString(value) : ipv6ToString(value);
+}
+
+// Count trailing zero bits of `value`, capped at `max`. Used to find the
+// largest power-of-two block aligned at a given address.
+function trailingZeroBits(value: bigint, max: number): number {
+  if (value === 0n) return max;
+  let count = 0;
+  let v = value;
+  while ((v & 1n) === 0n && count < max) {
+    v >>= 1n;
+    count++;
+  }
+  return count;
+}
+
+// Bits needed to represent `size` as a power of two. Expects size = 2^k.
+function log2Size(size: bigint): number {
+  let bits = 0;
+  let v = size;
+  while (v > 1n) {
+    v >>= 1n;
+    bits++;
+  }
+  return bits;
+}
+
+function buildAllocatedSubnet(
+  start: bigint,
+  prefix: number,
+  version: IpVersion,
+  name: string | null,
+  id: string | null,
+): AllocatedSubnet {
+  const totalBits = version === 4 ? 32 : 128;
+  const size = 1n << BigInt(totalBits - prefix);
+  const end = start + size - 1n;
+  const address = formatAddress(start, version);
+  const cidr = `${address}/${prefix}`;
+
+  const usable =
+    version === 6 ? size : prefix >= 31 ? size : size >= 2n ? size - 2n : 0n;
+
+  return {
+    id,
+    name,
+    cidr,
+    prefix,
+    network: address,
+    broadcast: version === 4 ? ipv4ToString(end) : null,
+    rangeStart: address,
+    rangeEnd: formatAddress(end, version),
+    hostCount: size.toString(),
+    usableHostCount: usable.toString(),
+  };
+}
+
+// Decompose a contiguous [start, end] range into the largest possible CIDR
+// blocks. At each step, pick the biggest aligned block that fits, emit it,
+// and advance. This is the standard "CIDR aggregation" greedy walk.
+function partitionRangeIntoCidr(
+  start: bigint,
+  end: bigint,
+  version: IpVersion,
+): AllocatedSubnet[] {
+  const totalBits = version === 4 ? 32 : 128;
+  const blocks: AllocatedSubnet[] = [];
+  let cursor = start;
+
+  while (cursor <= end) {
+    const alignmentBits = trailingZeroBits(cursor, totalBits);
+    const remaining = end - cursor + 1n;
+    const fitBits = log2Size(largestPowerOfTwoAtMost(remaining));
+    const bits = Math.min(alignmentBits, fitBits);
+    const prefix = totalBits - bits;
+    blocks.push(buildAllocatedSubnet(cursor, prefix, version, null, null));
+    cursor += 1n << BigInt(bits);
+  }
+
+  return blocks;
+}
+
+// Largest power of two <= n. For n = 10 returns 8; for n = 1 returns 1.
+function largestPowerOfTwoAtMost(n: bigint): bigint {
+  if (n <= 0n) return 1n;
+  let p = 1n;
+  while (p <= n) {
+    if (p > n / 2n) return p;
+    p <<= 1n;
+  }
+  return p;
+}
+
+// Allocate variable-size subnets from a parent CIDR using largest-first greedy
+// packing. Each requested prefix becomes a child subnet placed at the next
+// aligned offset within the parent. Returns allocations in address order plus
+// the leftover free space decomposed back into CIDR blocks.
+export function splitCidr(
+  parentCidr: string,
+  requests: SubnetRequest[],
+): VlsmResult {
+  if (!parentCidr.trim()) {
+    return EMPTY_VLSM_RESULT;
+  }
+
+  const parentResult = parseCidr(parentCidr);
+  if (parentResult.error || !parentResult.info) {
+    return {
+      ...EMPTY_VLSM_RESULT,
+      error: parentResult.error ?? "Invalid parent CIDR",
+    };
+  }
+
+  const parent = parentResult.info;
+  const version = parent.version;
+  const totalBits = version === 4 ? 32 : 128;
+  const parentStart =
+    version === 4
+      ? (parseIpv4(parent.network) ?? 0n)
+      : (parseIpv6(parent.network) ?? 0n);
+  const parentSize = 1n << BigInt(totalBits - parent.prefix);
+  const parentEnd = parentStart + parentSize - 1n;
+
+  if (requests.length === 0) {
+    return {
+      ...EMPTY_VLSM_RESULT,
+      version,
+      parentCidr: `${parent.network}/${parent.prefix}`,
+      remaining: [
+        buildAllocatedSubnet(parentStart, parent.prefix, version, null, null),
+      ],
+      parentCapacity: parentSize.toString(),
+    };
+  }
+
+  // Validate each request before allocating.
+  for (const req of requests) {
+    if (!Number.isInteger(req.prefix)) {
+      return {
+        ...EMPTY_VLSM_RESULT,
+        version,
+        parentCidr: `${parent.network}/${parent.prefix}`,
+        parentCapacity: parentSize.toString(),
+        error: `Invalid prefix /${req.prefix}`,
+      };
+    }
+    if (req.prefix < parent.prefix) {
+      return {
+        ...EMPTY_VLSM_RESULT,
+        version,
+        parentCidr: `${parent.network}/${parent.prefix}`,
+        parentCapacity: parentSize.toString(),
+        error: `Subnet /${req.prefix} is larger than the parent /${parent.prefix}`,
+      };
+    }
+    if (req.prefix > totalBits) {
+      return {
+        ...EMPTY_VLSM_RESULT,
+        version,
+        parentCidr: `${parent.network}/${parent.prefix}`,
+        parentCapacity: parentSize.toString(),
+        error: `Prefix /${req.prefix} exceeds maximum /${totalBits}`,
+      };
+    }
+  }
+
+  // Sum the full demand from all requests up front so the UI can report
+  // requested-vs-capacity honestly even when allocation fails midway.
+  const requestedTotal = requests.reduce(
+    (acc, req) => acc + (1n << BigInt(totalBits - req.prefix)),
+    0n,
+  );
+
+  // Sort largest first (smallest prefix number = biggest block). Stable sort
+  // preserves user input order for same-size requests. Largest-first prevents
+  // alignment fragmentation, but the allocator below tracks every free
+  // fragment explicitly so correctness does not depend on this sort.
+  const sorted = [...requests]
+    .map((req, index) => ({ ...req, originalIndex: index }))
+    .sort((a, b) => a.prefix - b.prefix || a.originalIndex - b.originalIndex);
+
+  // Track free space as an ordered list of [start, end] fragments. Each
+  // allocation finds the first fragment with an aligned slot that fits, then
+  // splits that fragment into the parts before and after the placement.
+  // This way any alignment hole skipped during placement remains in the
+  // free list and is reported in `remaining` — the cursor-only design used
+  // before silently dropped any space the cursor jumped over.
+  type FreeFragment = { start: bigint; end: bigint };
+  const freeFragments: FreeFragment[] = [
+    { start: parentStart, end: parentEnd },
+  ];
+  const allocated: AllocatedSubnet[] = [];
+
+  for (const req of sorted) {
+    const size = 1n << BigInt(totalBits - req.prefix);
+    const alignmentMask = size - 1n;
+
+    let placedFragmentIndex = -1;
+    let placedAt = 0n;
+
+    for (let i = 0; i < freeFragments.length; i++) {
+      const fragment = freeFragments[i];
+      const misalignment = fragment.start & alignmentMask;
+      const aligned =
+        misalignment === 0n
+          ? fragment.start
+          : fragment.start + (size - misalignment);
+      if (aligned + size - 1n <= fragment.end) {
+        placedFragmentIndex = i;
+        placedAt = aligned;
+        break;
+      }
+    }
+
+    if (placedFragmentIndex === -1) {
+      // Compute the remaining free space at this point so the UI can still
+      // show what was allocated and what's actually left, not just a tail.
+      const partialRemaining = freeFragments.flatMap((fragment) =>
+        partitionRangeIntoCidr(fragment.start, fragment.end, version),
+      );
+      return {
+        ...EMPTY_VLSM_RESULT,
+        version,
+        parentCidr: `${parent.network}/${parent.prefix}`,
+        allocated: sortByAddress(allocated, version),
+        remaining: partialRemaining,
+        requestedTotal: requestedTotal.toString(),
+        parentCapacity: parentSize.toString(),
+        error: `Subnet "${req.name || `/${req.prefix}`}" does not fit in the remaining space`,
+      };
+    }
+
+    allocated.push(
+      buildAllocatedSubnet(
+        placedAt,
+        req.prefix,
+        version,
+        req.name || null,
+        req.id,
+      ),
+    );
+
+    const fragment = freeFragments[placedFragmentIndex];
+    const replacement: FreeFragment[] = [];
+    if (placedAt > fragment.start) {
+      replacement.push({ start: fragment.start, end: placedAt - 1n });
+    }
+    if (placedAt + size <= fragment.end) {
+      replacement.push({ start: placedAt + size, end: fragment.end });
+    }
+    freeFragments.splice(placedFragmentIndex, 1, ...replacement);
+  }
+
+  const remaining = freeFragments.flatMap((fragment) =>
+    partitionRangeIntoCidr(fragment.start, fragment.end, version),
+  );
+
+  // Render allocations in address order so the UI lists subnets the way a
+  // network reviewer expects, regardless of the order the user typed them.
+  const allocatedSorted = sortByAddress(allocated, version);
+
+  return {
+    version,
+    parentCidr: `${parent.network}/${parent.prefix}`,
+    allocated: allocatedSorted,
+    remaining,
+    requestedTotal: requestedTotal.toString(),
+    parentCapacity: parentSize.toString(),
+    error: null,
+  };
+}
+
+function sortByAddress(
+  subnets: AllocatedSubnet[],
+  version: IpVersion,
+): AllocatedSubnet[] {
+  return [...subnets].sort((a, b) => {
+    const aStart =
+      version === 4
+        ? (parseIpv4(a.network) ?? 0n)
+        : (parseIpv6(a.network) ?? 0n);
+    const bStart =
+      version === 4
+        ? (parseIpv4(b.network) ?? 0n)
+        : (parseIpv6(b.network) ?? 0n);
+    return aStart < bStart ? -1 : aStart > bStart ? 1 : 0;
+  });
+}

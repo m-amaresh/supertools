@@ -2,11 +2,14 @@
 
 import { faNetworkWired } from "@fortawesome/free-solid-svg-icons/faNetworkWired";
 import { faPaste } from "@fortawesome/free-solid-svg-icons/faPaste";
+import { faPlus } from "@fortawesome/free-solid-svg-icons/faPlus";
+import { faTrash } from "@fortawesome/free-solid-svg-icons/faTrash";
 import { faXmark } from "@fortawesome/free-solid-svg-icons/faXmark";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useCallback, useMemo, useState } from "react";
 import { AlertBox } from "@/components/AlertBox";
 import { CopyButton } from "@/components/CopyButton";
+import { SegmentedControl } from "@/components/Toolbar";
 import {
   ToolBody,
   ToolCard,
@@ -21,7 +24,16 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useClipboard } from "@/hooks/useClipboard";
-import { type CidrInfo, parseCidr } from "@/lib/cidr";
+import {
+  type AllocatedSubnet,
+  type CidrInfo,
+  parseCidr,
+  type SubnetRequest,
+  splitCidr,
+  type VlsmResult,
+} from "@/lib/cidr";
+
+type Mode = "info" | "split";
 
 const presets = [
   { label: "10.0.0.0/8", value: "10.0.0.0/8" },
@@ -32,31 +44,82 @@ const presets = [
   { label: "fe80::/10", value: "fe80::/10" },
 ];
 
+let requestIdCounter = 0;
+function makeRequest(prefix: number, name = ""): SubnetRequest {
+  requestIdCounter += 1;
+  return { id: `sub-${requestIdCounter}`, name, prefix };
+}
+
 export default function CidrCalculator() {
   const { readText, pasteError } = useClipboard();
   const [input, setInput] = useState("");
+  const [mode, setMode] = useState<Mode>("info");
+  const [requests, setRequests] = useState<SubnetRequest[]>(() => [
+    makeRequest(24, "subnet-1"),
+    makeRequest(24, "subnet-2"),
+  ]);
 
-  const result = useMemo(() => parseCidr(input), [input]);
-  const info = result.info;
+  const infoResult = useMemo(() => parseCidr(input), [input]);
+  const info = infoResult.info;
+
+  const splitResult = useMemo<VlsmResult | null>(
+    () =>
+      mode === "split" && input.trim() ? splitCidr(input, requests) : null,
+    [mode, input, requests],
+  );
 
   const handlePaste = useCallback(async () => {
     const text = await readText();
     if (text !== null) setInput(text.trim());
   }, [readText]);
 
-  const copyAll = info ? formatInfoForCopy(info) : "";
+  const addRequest = useCallback(() => {
+    setRequests((prev) => {
+      const suggested = suggestNextPrefix(prev);
+      return [...prev, makeRequest(suggested, `subnet-${prev.length + 1}`)];
+    });
+  }, []);
+
+  const removeRequest = useCallback((id: string) => {
+    setRequests((prev) => prev.filter((req) => req.id !== id));
+  }, []);
+
+  const updateRequest = useCallback(
+    (id: string, patch: Partial<Omit<SubnetRequest, "id">>) => {
+      setRequests((prev) =>
+        prev.map((req) => (req.id === id ? { ...req, ...patch } : req)),
+      );
+    },
+    [],
+  );
+
+  const copyAllInfo = info ? formatInfoForCopy(info) : "";
+  const copyAllSplit = splitResult ? formatSplitForCopy(splitResult) : "";
+  const copyTarget = mode === "info" ? copyAllInfo : copyAllSplit;
+  const hasCopyable =
+    (mode === "info" && info) ||
+    (mode === "split" && splitResult && splitResult.allocated.length > 0);
 
   return (
     <ToolPage>
       <ToolHeader
         title="CIDR / Subnet Calculator"
-        description="Compute IPv4 and IPv6 network ranges, masks, and host counts"
+        description="Analyze a CIDR range or split it into variable-size child subnets (VLSM)"
       />
 
       <ToolCard>
         <ToolToolbar>
           <div className="flex items-center gap-2">
-            {info && <CopyButton text={copyAll} />}
+            <SegmentedControl
+              value={mode}
+              onChange={setMode}
+              ariaLabel="CIDR mode"
+              options={[
+                { value: "info", label: "Info" },
+                { value: "split", label: "Split" },
+              ]}
+            />
+            {hasCopyable && copyTarget && <CopyButton text={copyTarget} />}
           </div>
           <div className="flex items-center gap-2">
             <Button type="button" variant="ghost" onClick={handlePaste}>
@@ -92,16 +155,23 @@ export default function CidrCalculator() {
               </span>
             </AlertBox>
           )}
-          {result.error && (
+          {mode === "info" && infoResult.error && (
             <AlertBox variant="error">
-              <span>{result.error}</span>
+              <span>{infoResult.error}</span>
+            </AlertBox>
+          )}
+          {mode === "split" && splitResult?.error && (
+            <AlertBox variant="error">
+              <span>{splitResult.error}</span>
             </AlertBox>
           )}
         </ToolStatusStack>
 
         <ToolBody className="pt-4">
           <section>
-            <ToolLabel htmlFor="cidr-input">CIDR or IP Address</ToolLabel>
+            <ToolLabel htmlFor="cidr-input">
+              {mode === "split" ? "Parent CIDR" : "CIDR or IP Address"}
+            </ToolLabel>
             <Input
               id="cidr-input"
               type="text"
@@ -136,87 +206,298 @@ export default function CidrCalculator() {
               })}
             </div>
           </section>
+
+          {mode === "split" && (
+            <section>
+              <div className="mb-2 flex items-center justify-between">
+                <ToolLabel>Required Subnets</ToolLabel>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={addRequest}
+                >
+                  <FontAwesomeIcon
+                    icon={faPlus}
+                    className="h-3 w-3"
+                    aria-hidden="true"
+                  />
+                  Add subnet
+                </Button>
+              </div>
+              <div className="space-y-2">
+                {requests.map((req, index) => (
+                  <RequestRow
+                    key={req.id}
+                    request={req}
+                    index={index}
+                    onNameChange={(name) => updateRequest(req.id, { name })}
+                    onPrefixChange={(prefix) =>
+                      updateRequest(req.id, { prefix })
+                    }
+                    onRemove={
+                      requests.length > 1
+                        ? () => removeRequest(req.id)
+                        : undefined
+                    }
+                  />
+                ))}
+              </div>
+            </section>
+          )}
         </ToolBody>
 
-        {info ? (
-          <div className="border-t border-border">
-            <div className="flex items-center justify-between px-4 py-3">
-              <ToolMeta>
-                IPv{info.version} · /{info.prefix}
-                {info.ipClass ? ` · Class ${info.ipClass}` : ""}
-              </ToolMeta>
-              <FlagList info={info} />
-            </div>
-
-            <div className="divide-y divide-border border-t border-border">
-              <InfoRow label="Network" value={info.network} />
-              {info.broadcast && (
-                <InfoRow label="Broadcast" value={info.broadcast} />
-              )}
-              {info.firstHost && (
-                <InfoRow label="First Host" value={info.firstHost} />
-              )}
-              {info.lastHost && (
-                <InfoRow label="Last Host" value={info.lastHost} />
-              )}
-              <InfoRow
-                label="Range"
-                value={`${info.rangeStart} – ${info.rangeEnd}`}
-              />
-              <InfoRow label="Netmask" value={info.netmask} />
-              {info.wildcard && (
-                <InfoRow label="Wildcard" value={info.wildcard} />
-              )}
-              <InfoRow label="Total addresses" value={info.totalHostCount} />
-              <InfoRow label="Usable hosts" value={info.usableHostCount} />
-              <InfoRow label="Hex network" value={info.hexNetwork} mono />
-              <InfoRow label="Binary network" value={info.binaryNetwork} mono />
-            </div>
-          </div>
-        ) : (
-          !result.error && (
-            <div className="border-t border-border py-12 text-center">
-              <div className="inline-flex items-center justify-center size-10 mb-3 rounded-lg bg-foreground/[0.07]">
-                <FontAwesomeIcon
-                  icon={faNetworkWired}
-                  className="h-5 w-5 text-muted-foreground"
-                  aria-hidden="true"
-                />
-              </div>
-              <p className="text-[13px] text-muted-foreground">
-                Enter a CIDR expression or IP address to see subnet details
-              </p>
-            </div>
-          )
+        {mode === "info" && (
+          <InfoResult info={info} hasError={Boolean(infoResult.error)} />
+        )}
+        {mode === "split" && (
+          <SplitResult result={splitResult} hasInput={Boolean(input.trim())} />
         )}
       </ToolCard>
 
       <ToolFootnote>
         Uses <code className="font-mono">BigInt</code> math for IPv4 (/0–/32)
-        and IPv6 (/0–/128). A bare IP without a prefix is treated as /32 or
-        /128. All processing happens locally in your browser.
+        and IPv6 (/0–/128). Split mode packs largest-first into the parent and
+        decomposes leftover space into valid CIDR blocks. All processing happens
+        locally in your browser.
       </ToolFootnote>
     </ToolPage>
   );
 }
 
-function InfoRow({
-  label,
-  value,
-  mono = false,
+function RequestRow({
+  request,
+  index,
+  onNameChange,
+  onPrefixChange,
+  onRemove,
 }: {
-  label: string;
-  value: string;
-  mono?: boolean;
+  request: SubnetRequest;
+  index: number;
+  onNameChange: (name: string) => void;
+  onPrefixChange: (prefix: number) => void;
+  onRemove?: () => void;
 }) {
+  // Cap to the absolute IPv6 maximum (128). Per-version validation happens
+  // in splitCidr so the user gets a real error rather than a silent clamp
+  // while typing toward an IPv6 parent or correcting a malformed one.
+  const ABSOLUTE_MAX_PREFIX = 128;
+  return (
+    <div className="flex items-center gap-2">
+      <span className="w-6 shrink-0 text-right text-[12px] tabular-nums text-muted-foreground">
+        {index + 1}
+      </span>
+      <Input
+        type="text"
+        value={request.name}
+        onChange={(e) => onNameChange(e.target.value)}
+        placeholder="Name (optional)"
+        aria-label={`Subnet ${index + 1} name`}
+        className="h-9 flex-1 text-[13px]"
+        spellCheck={false}
+      />
+      <div className="flex items-center gap-1">
+        <span className="text-[13px] font-mono text-muted-foreground">/</span>
+        <Input
+          type="text"
+          inputMode="numeric"
+          value={Number.isFinite(request.prefix) ? String(request.prefix) : ""}
+          onChange={(e) => {
+            const next = Number.parseInt(e.target.value, 10);
+            if (!Number.isNaN(next)) {
+              onPrefixChange(Math.max(0, Math.min(ABSOLUTE_MAX_PREFIX, next)));
+            }
+          }}
+          aria-label={`Subnet ${index + 1} prefix`}
+          className="h-9 w-16 text-[13px] font-mono"
+          spellCheck={false}
+        />
+      </div>
+      {onRemove && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={onRemove}
+          aria-label={`Remove subnet ${index + 1}`}
+        >
+          <FontAwesomeIcon
+            icon={faTrash}
+            className="h-3 w-3"
+            aria-hidden="true"
+          />
+        </Button>
+      )}
+    </div>
+  );
+}
+
+function InfoResult({
+  info,
+  hasError,
+}: {
+  info: CidrInfo | null;
+  hasError: boolean;
+}) {
+  if (!info) {
+    if (hasError) return null;
+    return (
+      <div className="border-t border-border py-12 text-center">
+        <div className="inline-flex items-center justify-center size-10 mb-3 rounded-lg bg-foreground/[0.07]">
+          <FontAwesomeIcon
+            icon={faNetworkWired}
+            className="h-5 w-5 text-muted-foreground"
+            aria-hidden="true"
+          />
+        </div>
+        <p className="text-[13px] text-muted-foreground">
+          Enter a CIDR expression or IP address to see subnet details
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="border-t border-border">
+      <div className="flex items-center justify-between px-4 py-3">
+        <ToolMeta>
+          IPv{info.version} · /{info.prefix}
+          {info.ipClass ? ` · Class ${info.ipClass}` : ""}
+        </ToolMeta>
+        <FlagList info={info} />
+      </div>
+
+      <div className="divide-y divide-border border-t border-border">
+        <InfoRow label="Network" value={info.network} />
+        {info.broadcast && <InfoRow label="Broadcast" value={info.broadcast} />}
+        {info.firstHost && (
+          <InfoRow label="First Host" value={info.firstHost} />
+        )}
+        {info.lastHost && <InfoRow label="Last Host" value={info.lastHost} />}
+        <InfoRow
+          label="Range"
+          value={`${info.rangeStart} – ${info.rangeEnd}`}
+        />
+        <InfoRow label="Netmask" value={info.netmask} />
+        {info.wildcard && <InfoRow label="Wildcard" value={info.wildcard} />}
+        <InfoRow label="Total addresses" value={info.totalHostCount} />
+        <InfoRow label="Usable hosts" value={info.usableHostCount} />
+        <InfoRow label="Hex network" value={info.hexNetwork} />
+        <InfoRow label="Binary network" value={info.binaryNetwork} />
+      </div>
+    </div>
+  );
+}
+
+function SplitResult({
+  result,
+  hasInput,
+}: {
+  result: VlsmResult | null;
+  hasInput: boolean;
+}) {
+  if (!hasInput || !result) {
+    return (
+      <div className="border-t border-border py-12 text-center">
+        <div className="inline-flex items-center justify-center size-10 mb-3 rounded-lg bg-foreground/[0.07]">
+          <FontAwesomeIcon
+            icon={faNetworkWired}
+            className="h-5 w-5 text-muted-foreground"
+            aria-hidden="true"
+          />
+        </div>
+        <p className="text-[13px] text-muted-foreground">
+          Enter a parent CIDR and at least one subnet to split
+        </p>
+      </div>
+    );
+  }
+
+  if (result.allocated.length === 0 && !result.error) {
+    return (
+      <div className="border-t border-border py-12 text-center">
+        <p className="text-[13px] text-muted-foreground">
+          Add a subnet to start allocating
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="border-t border-border">
+      <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
+        <ToolMeta>
+          Parent {result.parentCidr} · requested {result.requestedTotal} /{" "}
+          {result.parentCapacity}
+        </ToolMeta>
+      </div>
+
+      {result.allocated.length > 0 && (
+        <div className="divide-y divide-border border-t border-border">
+          <SubnetHeaderRow label="Allocated" />
+          {result.allocated.map((sub) => (
+            <SubnetRow key={sub.id ?? sub.cidr} subnet={sub} />
+          ))}
+        </div>
+      )}
+
+      {result.remaining.length > 0 && (
+        <div className="divide-y divide-border border-t border-border">
+          <SubnetHeaderRow label="Remaining free space" />
+          {result.remaining.map((sub) => (
+            <SubnetRow key={`free-${sub.cidr}`} subnet={sub} muted />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SubnetHeaderRow({ label }: { label: string }) {
+  return (
+    <div className="bg-muted/40 px-4 py-2">
+      <span className="text-[12px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+        {label}
+      </span>
+    </div>
+  );
+}
+
+function SubnetRow({
+  subnet,
+  muted = false,
+}: {
+  subnet: AllocatedSubnet;
+  muted?: boolean;
+}) {
+  return (
+    <div
+      className={`flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2.5 ${
+        muted ? "bg-muted/20" : ""
+      }`}
+    >
+      <code className="min-w-[180px] font-mono text-[13px] text-foreground">
+        {subnet.cidr}
+      </code>
+      {subnet.name && (
+        <span className="text-[12px] text-muted-foreground">{subnet.name}</span>
+      )}
+      <span className="flex-1 font-mono text-[12px] text-muted-foreground">
+        {subnet.rangeStart} – {subnet.rangeEnd}
+      </span>
+      <span className="tabular-nums text-[12px] text-muted-foreground">
+        {subnet.hostCount} addrs
+      </span>
+      <CopyButton text={subnet.cidr} />
+    </div>
+  );
+}
+
+function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center gap-4 px-4 py-3">
       <ToolMeta className="w-36 shrink-0">{label}</ToolMeta>
-      <code
-        className={`flex-1 break-all text-[13px] leading-relaxed text-foreground ${
-          mono ? "font-mono" : "font-mono"
-        }`}
-      >
+      <code className="flex-1 break-all font-mono text-[13px] leading-relaxed text-foreground">
         {value}
       </code>
       <CopyButton text={value} />
@@ -260,4 +541,44 @@ function formatInfoForCopy(info: CidrInfo): string {
   lines.push(`Total: ${info.totalHostCount}`);
   lines.push(`Usable: ${info.usableHostCount}`);
   return lines.join("\n");
+}
+
+// Build the export. When allocation failed, lead with a clear PARTIAL banner
+// and include the error message so a pasted plan can never silently look
+// complete to a network reviewer.
+function formatSplitForCopy(result: VlsmResult): string {
+  const lines: string[] = [];
+  if (result.error) {
+    lines.push("# PARTIAL ALLOCATION — review carefully");
+    lines.push(`# Error: ${result.error}`);
+    lines.push(
+      `# Requested: ${result.requestedTotal} / Capacity: ${result.parentCapacity}`,
+    );
+    lines.push("");
+  }
+  if (result.parentCidr) lines.push(`Parent: ${result.parentCidr}`);
+  lines.push("");
+  lines.push(result.error ? "Allocated (partial):" : "Allocated:");
+  for (const sub of result.allocated) {
+    const label = sub.name ? ` (${sub.name})` : "";
+    lines.push(
+      `  ${sub.cidr}${label}  ${sub.rangeStart} - ${sub.rangeEnd}  [${sub.hostCount} addrs]`,
+    );
+  }
+  if (result.remaining.length > 0) {
+    lines.push("");
+    lines.push("Remaining:");
+    for (const sub of result.remaining) {
+      lines.push(`  ${sub.cidr}  ${sub.rangeStart} - ${sub.rangeEnd}`);
+    }
+  }
+  return lines.join("\n");
+}
+
+// Pick a default prefix for a newly added subnet that's unlikely to overflow:
+// same as the largest existing prefix, or one step finer if the list is empty.
+function suggestNextPrefix(existing: SubnetRequest[]): number {
+  if (existing.length === 0) return 24;
+  const biggest = existing.reduce((acc, req) => Math.max(acc, req.prefix), 0);
+  return biggest;
 }
