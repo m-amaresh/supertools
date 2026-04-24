@@ -27,7 +27,6 @@ SuperTools is intentionally opinionated. The product is small, but the standards
 | `src/components/ui/` | shadcn/ui primitives (button, input, select, checkbox, etc.) |
 | `src/hooks/` | Shared client hooks (useToolState, useClipboard) |
 | `src/lib/` | Pure logic — parsers, encoders, generators, validators, SEO helpers |
-| `public/` | Static assets |
 
 ## Tool Design Expectations
 
@@ -65,7 +64,7 @@ pnpm dev          # http://localhost:3100
 ```bash
 pnpm lint
 pnpm test:run
-pnpm exec tsc --noEmit
+pnpm typecheck
 pnpm build
 ```
 

@@ -31,6 +31,13 @@ function isWorkerPayload(value: unknown): value is WorkerPayload {
 self.onmessage = (event: MessageEvent<WorkerPayload>) => {
   const MATCH_LIMIT = 10000;
 
+  // Dedicated workers receive messages only from their creator, so `event.origin`
+  // is the empty string for same-origin messages. Reject anything else as
+  // defense-in-depth against cross-origin postMessage scenarios.
+  if (event.origin !== "" && event.origin !== self.location.origin) {
+    return;
+  }
+
   if (!isWorkerPayload(event.data)) {
     self.postMessage({
       matches: [],

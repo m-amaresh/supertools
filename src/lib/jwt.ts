@@ -15,24 +15,21 @@ export interface JwtResult {
   notBefore: Date | null;
 }
 
-// Decode a base64url segment to a UTF-8 string. Falls back to raw Latin-1
-// if the decoded bytes aren't valid UTF-8.
+// Decode a base64url segment to a UTF-8 string. JWT segments are JSON, which
+// RFC 8259 mandates be UTF-8 — invalid UTF-8 is a decode failure, not a
+// silent fallback to Latin-1 (which produces mojibake that looks successful).
 function base64UrlDecode(str: string): string {
   let base64 = str.replace(/-/g, "+").replace(/_/g, "/");
   const pad = base64.length % 4;
   if (pad) {
     base64 += "=".repeat(4 - pad);
   }
-  try {
-    return decodeURIComponent(
-      atob(base64)
-        .split("")
-        .map((c) => `%${c.charCodeAt(0).toString(16).padStart(2, "0")}`)
-        .join(""),
-    );
-  } catch {
-    return atob(base64);
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
   }
+  return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
 }
 
 // Decode a JWT without signature verification (inspection only).

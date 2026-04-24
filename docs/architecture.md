@@ -13,7 +13,6 @@ src/
   lib/                  Pure logic, parsers, generators, SEO helpers, utilities
 
 docs/                   Project documentation
-public/                 Static assets
 ```
 
 ## Main Layers

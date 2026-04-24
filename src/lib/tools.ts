@@ -4,6 +4,7 @@ export type SidebarToolCategory =
   | "Crypto"
   | "Data"
   | "Text"
+  | "Network"
   | "Time";
 
 export type ToolIconKey =
@@ -27,7 +28,9 @@ export type ToolIconKey =
   | "aLargeSmall"
   | "asterisk"
   | "clock"
-  | "calendarDays";
+  | "calendarDays"
+  | "networkWired"
+  | "qrcode";
 
 export interface ToolDefinition {
   name: string;
@@ -53,6 +56,7 @@ const sidebarCategoryOrder: SidebarToolCategory[] = [
   "Crypto",
   "Data",
   "Text",
+  "Network",
   "Time",
 ];
 
@@ -93,6 +97,18 @@ export const toolDefinitions: ToolDefinition[] = [
     sidebarLabel: "Lorem Ipsum",
     sidebarOrder: 3,
     icon: "alignLeft",
+  },
+  {
+    name: "QR Code Generator",
+    description: "Generate QR codes for text, URLs, Wi-Fi",
+    href: "/tools/ids/qrcode",
+    available: true,
+    featured: true,
+    homeOrder: 27,
+    sidebarCategory: "Generators",
+    sidebarLabel: "QR Code",
+    sidebarOrder: 4,
+    icon: "qrcode",
   },
 
   // ── Encode / Decode ──
@@ -353,6 +369,20 @@ export const toolDefinitions: ToolDefinition[] = [
     sidebarLabel: "Regex Tester",
     sidebarOrder: 3,
     icon: "asterisk",
+  },
+
+  // ── Network ──
+  {
+    name: "CIDR / Subnet Calculator",
+    description: "IPv4 and IPv6 subnet math, ranges, masks",
+    href: "/tools/network/cidr",
+    available: true,
+    featured: false,
+    homeOrder: 28,
+    sidebarCategory: "Network",
+    sidebarLabel: "CIDR / Subnet",
+    sidebarOrder: 1,
+    icon: "networkWired",
   },
 
   // ── Time ──

@@ -167,6 +167,22 @@ export const TOOL_INTENT_KEYWORDS: Record<string, string[]> = {
     "pem certificate inspector",
     "certificate fingerprint",
   ],
+  "/tools/network/cidr": [
+    "cidr calculator",
+    "subnet calculator",
+    "ipv4 subnet",
+    "ipv6 subnet",
+    "ip range calculator",
+    "wildcard mask",
+  ],
+  "/tools/ids/qrcode": [
+    "qr code generator",
+    "qr generator",
+    "create qr code",
+    "qr code maker",
+    "url qr code",
+    "wifi qr code",
+  ],
 };
 
 export const TOOL_FAQ_BY_PATH: Record<string, ToolSeoFaqSection> = {
@@ -1119,6 +1135,82 @@ export const TOOL_FAQ_BY_PATH: Record<string, ToolSeoFaqSection> = {
         question: "Is my data sent to a server?",
         answer:
           "No. All encoding and decoding runs locally in your browser, including the SHA-256 checksum computation for Base58Check.",
+      },
+    ],
+  },
+  "/tools/network/cidr": {
+    title: "CIDR / Subnet Calculator FAQ",
+    about:
+      "Calculate IPv4 and IPv6 subnet ranges, network addresses, broadcast addresses, netmasks, wildcard masks, and host counts directly in your browser. CIDR (Classless Inter-Domain Routing) notation is the standard way to describe network ranges in modern networking, used in routing tables, firewall rules, cloud security groups, VPC configurations, and Kubernetes networking. This tool accepts a CIDR expression like 192.168.1.0/24 or 2001:db8::/32 and produces every value you need to plan a subnet, validate a firewall rule, or audit a network design. All math runs locally using arbitrary-precision BigInt — your network topology never leaves your device.",
+    howToUse: [
+      "Enter a CIDR expression (e.g. 192.168.1.0/24) or a bare IP address.",
+      "View the network address, broadcast, host range, masks, and address counts instantly.",
+      "Use the preset buttons for common ranges like 10.0.0.0/8 or fe80::/10.",
+      "Copy individual values or the full summary using the copy buttons.",
+    ],
+    items: [
+      {
+        question: "Does this support IPv6?",
+        answer:
+          "Yes. The calculator handles both IPv4 (/0–/32) and IPv6 (/0–/128) using BigInt math, including IPv6 :: compression, embedded IPv4 addresses, and link-local detection.",
+      },
+      {
+        question: "What does /24 mean in CIDR notation?",
+        answer:
+          "The /24 suffix means the first 24 bits of the address are the network portion, leaving 8 bits for hosts. In IPv4 this gives 256 total addresses (254 usable hosts after reserving network and broadcast).",
+      },
+      {
+        question: "Why are /31 and /32 prefixes special?",
+        answer:
+          "A /32 represents a single host address. A /31 represents a 2-address point-to-point link where both addresses are usable (per RFC 3021), so the calculator does not subtract network and broadcast for these prefixes.",
+      },
+      {
+        question: "What is the wildcard mask used for?",
+        answer:
+          "Wildcard masks (the inverse of a netmask) are used in Cisco access control lists and OSPF area definitions, where they specify which bits the router should ignore when matching addresses.",
+      },
+      {
+        question: "Is my input sent to a server?",
+        answer:
+          "No. All CIDR parsing and subnet math runs locally in your browser using BigInt arithmetic. Nothing is transmitted.",
+      },
+    ],
+  },
+  "/tools/ids/qrcode": {
+    title: "QR Code Generator FAQ",
+    about:
+      "Generate QR codes for URLs, plain text, Wi-Fi credentials, contact cards, and any string up to a few thousand characters — directly in your browser. QR codes encode short payloads as a 2D matrix that smartphones, scanners, and modern cameras can read instantly, making them ideal for sharing links, joining Wi-Fi networks, presenting payment details, or distributing app download URLs. This generator runs entirely client-side, supports four error correction levels, and lets you download the result as SVG (scales perfectly) or PNG (works everywhere). Your input is never sent to a server.",
+    howToUse: [
+      "Type or paste the text or URL you want to encode.",
+      "Choose an error correction level: L (smallest), M, Q, or H (most resilient to damage).",
+      "Adjust the module size and quiet zone if needed.",
+      "Download the QR code as SVG or PNG, or scan it directly from the preview.",
+    ],
+    items: [
+      {
+        question: "What is QR error correction?",
+        answer:
+          "QR codes embed Reed-Solomon error correction so they can still be read when partly damaged or obscured. Level L recovers ~7% damage, M ~15%, Q ~25%, and H ~30%. Higher correction creates denser, larger QR codes.",
+      },
+      {
+        question: "Which error correction level should I pick?",
+        answer:
+          "Use M for normal screen or print use, Q if the QR will be on a busy or low-quality surface, and H if a logo or sticker may overlap part of the code. L produces the smallest code but is fragile.",
+      },
+      {
+        question: "How much data can a QR code hold?",
+        answer:
+          "Up to a few thousand alphanumeric characters in the highest QR version, but in practice keep payloads under ~300 characters for reliable scanning by phone cameras.",
+      },
+      {
+        question: "Can I generate Wi-Fi or vCard QR codes?",
+        answer:
+          "Yes. Paste a Wi-Fi join string (WIFI:T:WPA;S:MySSID;P:MyPassword;;) or a vCard payload to encode it. Most modern phone cameras recognise both formats automatically.",
+      },
+      {
+        question: "Is the QR code generated in my browser?",
+        answer:
+          "Yes. Generation is entirely local — your input text, URLs, and any sensitive data like Wi-Fi passwords never leave your device.",
       },
     ],
   },

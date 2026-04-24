@@ -15,7 +15,7 @@ The rough product goals are:
 
 ## Current Tool Count
 
-26 public tools
+28 public tools
 
 ## Routes by Category
 
@@ -53,7 +53,12 @@ The rough product goals are:
 ### IDs and Passwords
 
 - `/tools/ids/password`
+- `/tools/ids/qrcode`
 - `/tools/ids/uuid`
+
+### Network
+
+- `/tools/network/cidr`
 
 ### Time
 

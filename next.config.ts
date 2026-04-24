@@ -2,15 +2,21 @@ import type { NextConfig } from "next";
 
 const isDev = process.env.NODE_ENV !== "production";
 
+// Vercel Analytics + Speed Insights load debug scripts from these hosts only
+// in dev. Production uses same-origin `/_vercel/insights/*` paths rewritten
+// by Vercel's edge, so CSP stays strict in prod.
+const vercelInsightsScript = "https://va.vercel-scripts.com";
+const vercelInsightsEvents = "https://vitals.vercel-insights.com";
+
 const cspDirectives = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
-  "script-src-elem 'self' 'unsafe-inline'",
+  `script-src-elem 'self' 'unsafe-inline'${isDev ? ` ${vercelInsightsScript}` : ""}`,
   "script-src-attr 'none'",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "font-src 'self' data:",
-  "connect-src 'self'",
+  `connect-src 'self'${isDev ? ` ${vercelInsightsScript} ${vercelInsightsEvents}` : ""}`,
   "worker-src 'self' blob:",
   "object-src 'none'",
   "base-uri 'self'",

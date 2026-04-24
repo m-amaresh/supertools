@@ -22,7 +22,7 @@ Then open `http://localhost:3100`.
 pnpm dev
 pnpm lint
 pnpm test:run
-pnpm exec tsc --noEmit
+pnpm typecheck
 pnpm build
 pnpm start
 ```
@@ -52,7 +52,7 @@ Before opening a PR or cutting a release, run:
 ```bash
 pnpm lint
 pnpm test:run
-pnpm exec tsc --noEmit
+pnpm typecheck
 pnpm build
 ```
 

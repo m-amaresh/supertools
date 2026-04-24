@@ -9,7 +9,7 @@ Run these before release and before merging meaningful changes:
 ```bash
 pnpm lint
 pnpm test:run
-pnpm exec tsc --noEmit
+pnpm typecheck
 pnpm build
 ```
 
@@ -18,7 +18,7 @@ pnpm build
 - Package manager: `pnpm`
 - Node target: `24.x`
 - Framework: Next.js 16 App Router
-- TypeScript: `6.0.2`
+- TypeScript: `6`
 - Linting/formatting: Biome
 - Unit tests: Vitest
 
