@@ -168,7 +168,9 @@ export async function decryptPayloadAesGcm(
   if (iv.length !== 12) {
     throw new Error("Invalid payload IV");
   }
-  if (ciphertext.length < 17) {
+  // AES-GCM output is ciphertext || 16-byte auth tag, so the minimum valid
+  // length is 16 bytes (0-byte plaintext produces just the tag).
+  if (ciphertext.length < 16) {
     throw new Error("Invalid payload ciphertext");
   }
   const key = await deriveKey(passphrase, salt, payload.it);

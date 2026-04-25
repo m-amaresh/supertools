@@ -16,10 +16,10 @@ A fast, privacy-first suite of developer utilities that run entirely in your bro
 
 ## What You Get
 
-- **26 browser-based tools** across encoding, data conversion, cryptography, text processing, ID generation, and time utilities
+- **28 browser-based tools** across encoding, data conversion, cryptography, text processing, ID generation, network, and time utilities
 - **Client-side processing** — payloads (text, files, tokens, secrets) are transformed locally, never sent to a server
 - **Consistent UX** — every tool follows the same scaffold, toolbar, status, and output patterns
-- **Modern stack** — Next.js 16, React 19, TypeScript 6.0.2, Tailwind CSS 4, Biome, Vitest
+- **Modern stack** — Next.js 16, React 19, TypeScript 6, Tailwind CSS 4, Biome, Vitest
 
 ### Tool Inventory
 
@@ -28,7 +28,8 @@ A fast, privacy-first suite of developer utilities that run entirely in your bro
 | **Encoding & Crypto** | Base64, Base32, Base58, Hex, URL Encode/Decode, URL Parser, Escape/Unescape, AES, RSA, Hash/HMAC, CRC32, JWT Decoder, TLS Certificate Inspector |
 | **Data** | JSON Formatter, YAML Converter, CSV Converter, Base Converter, Color Converter |
 | **Text** | Diff Viewer, Regex Tester, Case Converter, Lorem Ipsum Generator |
-| **IDs & Passwords** | UUID Generator, Password Generator |
+| **IDs & Passwords** | UUID Generator, Password Generator, QR Code Generator |
+| **Network** | CIDR / Subnet Calculator |
 | **Time** | Unix Timestamp Converter, Cron Expression Parser |
 
 ## Quick Start
@@ -73,7 +74,6 @@ src/
   lib/              Pure logic — parsers, encoders, generators, validators, SEO
 
 docs/               Project documentation
-public/             Static assets
 ```
 
 ## Stack
@@ -81,7 +81,7 @@ public/             Static assets
 | Layer | Technology |
 |---|---|
 | Framework | Next.js 16 (App Router) |
-| Language | TypeScript 6.0.2 |
+| Language | TypeScript 6 |
 | Styling | Tailwind CSS 4 + shadcn/ui |
 | Icons | Font Awesome 7 (tree-shaken path imports) |
 | Theming | next-themes (light, dark, system) |

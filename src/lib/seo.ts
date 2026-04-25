@@ -21,6 +21,8 @@ export const GLOBAL_KEYWORDS = [
   "url parser",
   "base58 converter",
   "tls certificate viewer",
+  "cidr calculator",
+  "qr code generator",
 ];
 
 export const TOOLS_KEYWORDS = [

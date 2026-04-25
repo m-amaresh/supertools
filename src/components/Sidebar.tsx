@@ -17,8 +17,10 @@ import { faHeading } from "@fortawesome/free-solid-svg-icons/faHeading";
 import { faKey } from "@fortawesome/free-solid-svg-icons/faKey";
 import { faLink } from "@fortawesome/free-solid-svg-icons/faLink";
 import { faLock } from "@fortawesome/free-solid-svg-icons/faLock";
+import { faNetworkWired } from "@fortawesome/free-solid-svg-icons/faNetworkWired";
 import { faPalette } from "@fortawesome/free-solid-svg-icons/faPalette";
 import { faPen } from "@fortawesome/free-solid-svg-icons/faPen";
+import { faQrcode } from "@fortawesome/free-solid-svg-icons/faQrcode";
 import { faRightLeft } from "@fortawesome/free-solid-svg-icons/faRightLeft";
 import { faShield } from "@fortawesome/free-solid-svg-icons/faShield";
 import { faTicket } from "@fortawesome/free-solid-svg-icons/faTicket";
@@ -50,6 +52,8 @@ const iconByKey: Record<ToolIconKey, IconDefinition> = {
   asterisk: faAsterisk,
   clock: faClock,
   calendarDays: faCalendarDays,
+  networkWired: faNetworkWired,
+  qrcode: faQrcode,
 };
 
 interface SidebarProps {
